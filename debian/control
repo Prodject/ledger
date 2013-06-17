@@ -1,0 +1,46 @@
+Source: ledger
+Section: utils
+Priority: optional
+Maintainer: Michael Budde <mbudde@gmail.com>
+Build-Depends: debhelper (>= 7.0.50~),
+               cdbs,
+               cmake,
+               libgmp3-dev,
+               libmpfr-dev,
+               libedit-dev,
+               libboost-dev,
+               libboost-date-time-dev,
+               libboost-regex-dev,
+               libboost-iostreams-dev,
+               libboost-filesystem-dev,
+               libboost-serialization-dev,
+               libboost-graph-dev,
+               libboost-program-options-dev,
+               libboost-signals-dev,
+               libboost-test-dev,
+               libboost-thread-dev,
+               libboost-wave-dev,
+               libboost-python-dev,
+               python
+Standards-Version: 3.9.2
+Homepage: http://ledger-cli.org
+
+Package: ledger
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: command-line double-entry accounting program
+ Ledger is a powerful and flexible double-entry accounting system run
+ entirely from the command line.  Your accounts ledger is stored in one or
+ more plain-text files with a very simple and readable format, and ledger
+ does the hard work of balancing your books and reporting.
+
+Package: ledger-dbg
+Architecture: any
+Depends: ${misc:Depends}, ledger (= ${binary:Version})
+Description: command-line double-entry accounting program (debugging symbols)
+ Ledger is a powerful and flexible double-entry accounting system run
+ entirely from the command line.  Your accounts ledger is stored in one or
+ more plain-text files with a very simple and readable format, and ledger
+ does the hard work of balancing your books and reporting.
+ .
+ This package contains debugging symbols for ledger.
