@@ -1,3 +1,9 @@
+ledger (3.0.0~20130529-0mbudde1) raring; urgency=low
+
+  * Release candidate for 3.0.0 release.
+
+ -- Michael Budde <mbudde@gmail.com>  Mon, 17 Jun 2013 21:21:36 +0200
+
 ledger (3.0.0~20130309-0mbudde1) quantal; urgency=low
 
   * Snapshot release.
