@@ -24,6 +24,8 @@ Build-Depends: debhelper (>= 7.0.50~),
                python
 Standards-Version: 3.9.2
 Homepage: http://ledger-cli.org
+Vcs-Browser: http://github.com/mbudde/ledger
+Vcs-Git: git://github.com/mbudde/ledger.git
 
 Package: ledger
 Architecture: any
