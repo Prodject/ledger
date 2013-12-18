@@ -1,3 +1,9 @@
+ledger (3.0.0~20131216-0mbudde1) raring; urgency=low
+
+  * Snapshot release.
+
+ -- Michael Budde <mbudde@gmail.com>  Wed, 18 Dec 2013 10:05:56 +0100
+
 ledger (3.0.0~20130529-0mbudde1) raring; urgency=low
 
   * Release candidate for 3.0.0 release.
