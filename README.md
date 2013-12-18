@@ -17,6 +17,13 @@ Now try your first ledger command:
 
     ./ledger -f test/input/sample.dat reg
 
+For help on keeping your journal have a look at the
+[documentation](http://www.ledger-cli.org/docs.html) and the
+[wiki](http://wiki.ledger-cli.org/) (Also see the “Resources” section at the
+end of this file). An emacs mode for ledger files can be found in the `lisp`
+directory and a vim plugin is located in the [ledger/vim-ledger
+repository](https://github.com/ledger/vim-ledger).
+
 ## To the Rest
 
 If you're reading this file, you have in your hands the Bleeding Edge.  This
@@ -130,7 +137,7 @@ footwork for you:
     ./acprep update
     # or, if you want to use the Boost libraries with suffix -mt, install in
     # $HOME/local and build with 2 processes in parallel
-    ./acprep update --boost-suffix=-mt -- --prefix=$HOME/local -j2
+    ./acprep update --boost-suffix=-mt --prefix=$HOME/local -j2
 
 Please read the contents of `config.log` if the configure step fails.  Also,
 see the `help` subcommand to `acprep`, which explains some of its many

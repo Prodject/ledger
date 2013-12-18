@@ -1,4 +1,4 @@
-;;; ldg-context.el --- Helper code for use with the "ledger" command-line tool
+;;; ledger-context.el --- Helper code for use with the "ledger" command-line tool
 
 ;; Copyright (C) 2003-2013 John Wiegley (johnw AT gnu DOT org)
 
@@ -51,14 +51,14 @@
 			      (concat (symbol-name e) "-string")))))) "[ \t]*$")))
 
 (defmacro single-line-config2 (&rest elements)
-"Take list of ELEMENTS and return regex and element list for use in context-at-point"
+  "Take list of ELEMENTS and return regex and element list for use in context-at-point"
   (let (regex-string)
     `'(,(concat (dolist (e elements regex-string)
-	   (setq regex-string
-		 (concat regex-string
-			 (eval
-			  (intern
-			   (concat (symbol-name e) "-string")))))) "[ \t]*$")
+		  (setq regex-string
+			(concat regex-string
+				(eval
+				 (intern
+				  (concat (symbol-name e) "-string")))))) "[ \t]*$")
        ,elements)))
 
 (defmacro single-line-config (&rest elements)
@@ -68,8 +68,8 @@
 
 (defconst ledger-line-config
   (list (list 'xact (list (single-line-config date nil status nil code nil payee nil comment)
-													(single-line-config date nil status nil code nil payee)
-													(single-line-config date nil status nil payee)))
+			  (single-line-config date nil status nil code nil payee)
+			  (single-line-config date nil status nil payee)))
 	(list 'acct-transaction (list (single-line-config indent comment)
 				      (single-line-config2 indent status account nil commodity amount nil comment)
 				      (single-line-config2 indent status account nil commodity amount)
@@ -206,6 +206,6 @@ specified line, returns nil."
 (defun ledger-context-goto-field-end (context-info field-name)
   (goto-char (ledger-context-field-end-position context-info field-name)))
 
-(provide 'ldg-context)
+(provide 'ledger-context)
 
-;;; ldg-report.el ends here
+;;; ledger-report.el ends here

@@ -1,4 +1,4 @@
-;;; ldg-exec.el --- Helper code for use with the "ledger" command-line tool
+;;; ledger-exec.el --- Helper code for use with the "ledger" command-line tool
 
 ;; Copyright (C) 2003-2013 John Wiegley (johnw AT gnu DOT org)
 
@@ -34,6 +34,11 @@
 (defgroup ledger-exec nil
   "Interface to the Ledger command-line accounting program."
   :group 'ledger)
+
+(defcustom ledger-mode-should-check-version t
+	"Should Ledger-mode verify that the executable is working"
+	:type 'boolean
+	:group 'ledger-exec)
 
 (defcustom ledger-binary-path "ledger"
   "Path to the ledger executable."
@@ -77,7 +82,7 @@
   (let ((buffer ledger-buf)
         (version-strings '()))
     (with-temp-buffer
-      (when (ledger-exec-ledger (current-buffer) (current-buffer) "--version")	
+      (when (ledger-exec-ledger (current-buffer) (current-buffer) "--version")
 	(goto-char (point-min))
 	(delete-horizontal-space)
 	(setq version-strings (split-string
@@ -92,10 +97,11 @@
 (defun ledger-check-version ()
   "Verify that ledger works and is modern enough."
   (interactive)
-  (if (setq ledger-works (ledger-version-greater-p ledger-version-needed))
-      (message "Good Ledger Version")
-      (message "Bad Ledger Version")))
+  (if ledger-mode-should-check-version
+      (if (setq ledger-works (ledger-version-greater-p ledger-version-needed))
+	  (message "Good Ledger Version")
+	(message "Bad Ledger Version"))))
 
-(provide 'ldg-exec)
+(provide 'ledger-exec)
 
-;;; ldg-exec.el ends here
+;;; ledger-exec.el ends here

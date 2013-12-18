@@ -128,11 +128,11 @@ public:
 
   accounts_map_seconds_iterator accounts_begin() {
     return make_transform_iterator
-      (accounts.begin(), bind(&accounts_map::value_type::second, _1));
+      (accounts.begin(), boost::bind(&accounts_map::value_type::second, _1));
   }
   accounts_map_seconds_iterator accounts_end() {
     return make_transform_iterator
-      (accounts.end(), bind(&accounts_map::value_type::second, _1));
+      (accounts.end(), boost::bind(&accounts_map::value_type::second, _1));
   }
 
   void add_post(post_t * post);
@@ -310,7 +310,7 @@ void put_account(property_tree::ptree& pt, const account_t& acct,
 
 //simple struct added to allow std::map to compare accounts in the accounts report
 struct account_compare {
-  bool operator() (const account_t& lhs, const account_t& rhs){
+  bool operator() (const account_t& lhs, const account_t& rhs) const {
     return (lhs.fullname().compare(rhs.fullname()) < 0);
   }
 };

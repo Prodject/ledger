@@ -32,7 +32,7 @@ if(NOT BUILD_DOCS)
   return()
 endif()
 
-set(info_files ledger.texi ledger3.texi ledger-mode.texi)
+set(info_files ledger3.texi ledger-mode.texi)
 
 find_program(MAKEINFO makeinfo)
 find_program(TEXI2PDF texi2pdf)
@@ -96,10 +96,11 @@ if(CMAKE_INSTALL_MANDIR)
     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 COMPONENT doc)
 endif(CMAKE_INSTALL_MANDIR)
 
-if(CMAKE_INSTALL_DOCDIR)
-  foreach(file ${info_files})
-    get_filename_component(file_base ${file} NAME_WE)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${file_base}.pdf
-      DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc OPTIONAL)
-  endforeach()
-endif(CMAKE_INSTALL_DOCDIR)
+foreach(file ${info_files})
+  get_filename_component(file_base ${file} NAME_WE)
+
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${file}
+    DESTINATION ${CMAKE_INSTALL_INFODIR} COMPONENT doc)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${file_base}.pdf
+    DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc OPTIONAL)
+endforeach()
