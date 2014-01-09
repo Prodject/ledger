@@ -1,3 +1,9 @@
+ledger (3.0.0~20140109-0mbudde1) saucy; urgency=low
+
+  * Snapshot release. 
+
+ -- Michael Budde <mbudde@gmail.com>  Thu, 09 Jan 2014 18:40:17 +0100
+
 ledger (3.0.0~20131216-0mbudde1) raring; urgency=low
 
   * Snapshot release.
