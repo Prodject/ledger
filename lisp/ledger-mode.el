@@ -99,6 +99,18 @@
 		      nil)))
     (ledger-read-string-with-default prompt default)))
 
+(defun ledger-read-date (prompt)
+  "Returns user-supplied date after `PROMPT', defaults to today."
+  (let* ((default (ledger-year-and-month))
+         (date (read-string prompt default
+                            'ledger-minibuffer-history)))
+    (if (or (string= date default)
+            (string= "" date))
+        (format-time-string
+         (or (cdr (assoc "date-format" ledger-environment-alist))
+             ledger-default-date-format))
+      date)))
+
 (defun ledger-read-string-with-default (prompt default)
   "Return user supplied string after PROMPT, or DEFAULT."
   (read-string (concat prompt
@@ -145,16 +157,62 @@ Can indent, complete or align depending on context."
 
 (defvar ledger-mode-abbrev-table)
 
-(defun ledger-insert-effective-date ()
+(defvar ledger-date-string-today
+  (format-time-string (or
+        (cdr (assoc "date-format" ledger-environment-alist))
+        ledger-default-date-format)))
+
+(defun ledger-remove-effective-date ()
+  "Removes the effective date from a transaction or posting."
   (interactive)
-  (let ((context (car (ledger-context-at-point)))
-	(date-string (format-time-string (cdr (assoc "date-format" ledger-environment-alist)))))
-    (cond ((eq 'xact context)
-	   (beginning-of-line)
-	   (insert date-string "="))
-	  ((eq 'acct-transaction context)
-	   (end-of-line)
-	   (insert "  ; [=" date-string "]")))))
+  (let ((context (car (ledger-context-at-point))))
+    (save-excursion
+      (save-restriction
+        (narrow-to-region (point-at-bol) (point-at-eol))
+        (beginning-of-line)
+        (cond ((eq 'pmnt-transaction context)
+               (re-search-forward ledger-iso-date-regexp)
+               (when (= (char-after) ?=)
+                 (let ((eq-pos (point)))
+                   (delete-region
+                    eq-pos
+                    (re-search-forward ledger-iso-date-regexp)))))
+              ((eq 'acct-transaction context)
+               ;; Match "; [=date]" & delete string
+               (when (re-search-forward
+                      (concat ledger-comment-regex
+                              "\\[=" ledger-iso-date-regexp "\\]")
+                      nil 'noerr)
+                 (replace-match ""))))))))
+
+(defun ledger-insert-effective-date (&optional date)
+  "Insert effective date `DATE' to the transaction or posting.
+
+If `DATE' is nil, prompt the user a date.
+
+Replace the current effective date if there's one in the same
+line.
+
+With a prefix argument, remove the effective date. "
+  (interactive)
+  (if (and (listp current-prefix-arg)
+           (= 4 (prefix-numeric-value current-prefix-arg)))
+      (ledger-remove-effective-date)
+    (let* ((context (car (ledger-context-at-point)))
+           (date-string (or date (ledger-read-date "Effective date: "))))
+      (save-restriction
+        (narrow-to-region (point-at-bol) (point-at-eol))
+        (cond
+         ((eq 'pmnt-transaction context)
+          (beginning-of-line)
+          (re-search-forward ledger-iso-date-regexp)
+          (when (= (char-after) ?=)
+            (ledger-remove-effective-date))
+          (insert "=" date-string))
+         ((eq 'acct-transaction context)
+          (end-of-line)
+          (ledger-remove-effective-date)
+          (insert "  ; [=" date-string "]")))))))
 
 (defun ledger-mode-remove-extra-lines ()
   (goto-char (point-min))
@@ -278,7 +336,7 @@ Can indent, complete or align depending on context."
 			 'ledger-parse-arguments)
 	(set (make-local-variable 'pcomplete-command-completion-function)
 			 'ledger-complete-at-point)
-	(set (make-local-variable 'pcomplete-termination-string) "")
+    (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t)
 
 	(add-hook 'post-command-hook 'ledger-highlight-xact-under-point nil t)
 	(add-hook 'before-revert-hook 'ledger-occur-remove-all-overlays nil t)
