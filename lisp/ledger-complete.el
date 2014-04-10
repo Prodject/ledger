@@ -1,6 +1,6 @@
 ;;; ledger-complete.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2013 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -16,8 +16,8 @@
 ;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
-;; MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+;; MA 02110-1301 USA.
 
 ;;; Commentary:
 ;; Functions providing payee and account auto complete.
@@ -171,23 +171,28 @@ Return list."
 		    (throw 'pcompleted t)))
 	      (ledger-accounts)))))
 
+(defun ledger-trim-trailing-whitespace (str)
+	(let ((s str))
+		(when (string-match "[ \t]*$" s)
+			(replace-match "" nil nil s))))
+
 (defun ledger-fully-complete-xact ()
   "Completes a transaction if there is another matching payee in the buffer.
 Does not use ledger xact"
   (interactive)
-  (let* ((name (caar (ledger-parse-arguments)))
-	 (rest-of-name name)
-	 xacts)
+  (let* ((name (ledger-trim-trailing-whitespace (caar (ledger-parse-arguments))))
+				 (rest-of-name name)
+				 xacts)
     (save-excursion
       (when (eq 'transaction (ledger-thing-at-point))
-	(delete-region (point) (+ (length name) (point)))
-	;; Search backward for a matching payee
+				(delete-region (point) (+ (length name) (point)))
+				;; Search backward for a matching payee
         (when (re-search-backward
                (concat "^[0-9/.=-]+\\(\\s-+\\*\\)?\\(\\s-+(.*?)\\)?\\s-+\\(.*"
                        (regexp-quote name) ".*\\)" ) nil t)
-	  (setq rest-of-name (match-string 3))
+					(setq rest-of-name (match-string 3))
           ;; Start copying the postings
-	  (forward-line)
+					(forward-line)
           (while (looking-at ledger-account-any-status-regex)
             (setq xacts (cons (buffer-substring-no-properties
                                (line-beginning-position)
@@ -198,7 +203,7 @@ Does not use ledger xact"
     ;; Insert rest-of-name and the postings
     (when xacts
       (save-excursion
-	(insert rest-of-name ?\n)
+				(insert rest-of-name ?\n)
         (while xacts
           (insert (car xacts) ?\n)
           (setq xacts (cdr xacts))))
@@ -208,49 +213,55 @@ Does not use ledger xact"
           (goto-char (match-end 0))))))
 
 
+(defcustom ledger-complete-ignore-case t
+	"Non-nil means that ledger-complete-at-point will be case-insensitive"
+	:type 'boolean
+	:group 'ledger)
+
 (defun ledger-pcomplete (&optional interactively)
   "Complete rip-off of pcomplete from pcomplete.el, only added
 ledger-magic-tab in the previous commands list so that
 ledger-magic-tab would cycle properly"
   (interactive "p")
-  (if (and interactively
-           pcomplete-cycle-completions
-           pcomplete-current-completions
-           (memq last-command '(ledger-magic-tab
-                                ledger-pcomplete
-                                pcomplete-expand-and-complete
-                                pcomplete-reverse)))
-      (progn
-        (delete-backward-char pcomplete-last-completion-length)
-        (if (eq this-command 'pcomplete-reverse)
-            (progn
-              (push (car (last pcomplete-current-completions))
-                    pcomplete-current-completions)
-              (setcdr (last pcomplete-current-completions 2) nil))
-	    (nconc pcomplete-current-completions
-		   (list (car pcomplete-current-completions)))
-	    (setq pcomplete-current-completions
-		  (cdr pcomplete-current-completions)))
-        (pcomplete-insert-entry pcomplete-last-completion-stub
-                                (car pcomplete-current-completions)
-                                nil pcomplete-last-completion-raw))
+	(let ((pcomplete-ignore-case ledger-complete-ignore-case))
+		(if (and interactively
+						 pcomplete-cycle-completions
+						 pcomplete-current-completions
+						 (memq last-command '(ledger-magic-tab
+																	ledger-pcomplete
+																	pcomplete-expand-and-complete
+																	pcomplete-reverse)))
+				(progn
+					(delete-backward-char pcomplete-last-completion-length)
+					(if (eq this-command 'pcomplete-reverse)
+							(progn
+								(push (car (last pcomplete-current-completions))
+											pcomplete-current-completions)
+								(setcdr (last pcomplete-current-completions 2) nil))
+						(nconc pcomplete-current-completions
+									 (list (car pcomplete-current-completions)))
+						(setq pcomplete-current-completions
+									(cdr pcomplete-current-completions)))
+					(pcomplete-insert-entry pcomplete-last-completion-stub
+																	(car pcomplete-current-completions)
+																	nil pcomplete-last-completion-raw))
       (setq pcomplete-current-completions nil
-	    pcomplete-last-completion-raw nil)
+						pcomplete-last-completion-raw nil)
       (catch 'pcompleted
-	(let* ((pcomplete-stub)
-	       pcomplete-seen pcomplete-norm-func
-	       pcomplete-args pcomplete-last pcomplete-index
-	       (pcomplete-autolist pcomplete-autolist)
-	       (pcomplete-suffix-list pcomplete-suffix-list)
-	       (completions (pcomplete-completions))
-	       (result (pcomplete-do-complete pcomplete-stub completions)))
-	  (and result
-	       (not (eq (car result) 'listed))
-	       (cdr result)
-	       (pcomplete-insert-entry pcomplete-stub (cdr result)
-				       (memq (car result)
-					     '(sole shortest))
-				       pcomplete-last-completion-raw))))))
+				(let* ((pcomplete-stub)
+							 pcomplete-seen pcomplete-norm-func
+							 pcomplete-args pcomplete-last pcomplete-index
+							 (pcomplete-autolist pcomplete-autolist)
+							 (pcomplete-suffix-list pcomplete-suffix-list)
+							 (completions (pcomplete-completions))
+							 (result (pcomplete-do-complete pcomplete-stub completions)))
+					(and result
+							 (not (eq (car result) 'listed))
+							 (cdr result)
+							 (pcomplete-insert-entry pcomplete-stub (cdr result)
+																			 (memq (car result)
+																						 '(sole shortest))
+																			 pcomplete-last-completion-raw)))))))
 
 (provide 'ledger-complete)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,7 +83,10 @@ class ptristream : public std::istream
     virtual pos_type seekoff(off_type off, ios_base::seekdir way,
                              ios_base::openmode)
     {
-      switch (way) {
+      // cast to avoid gcc '-Wswitch' warning
+      // as ios_base::beg/cur/end are not necesssarily values of 'way' enum type ios_base::seekdir
+      // based on https://svn.boost.org/trac/boost/ticket/7644
+      switch (static_cast<int>(way)) {
       case std::ios::cur:
         setg(ptr, gptr()+off, ptr+len);
         break;

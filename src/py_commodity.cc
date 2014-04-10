@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -315,6 +315,7 @@ void export_commodity()
   scope().attr("COMMODITY_STYLE_SUFFIXED")      = COMMODITY_STYLE_SUFFIXED;
   scope().attr("COMMODITY_STYLE_SEPARATED")     = COMMODITY_STYLE_SEPARATED;
   scope().attr("COMMODITY_STYLE_DECIMAL_COMMA") = COMMODITY_STYLE_DECIMAL_COMMA;
+  scope().attr("COMMODITY_STYLE_TIME_COLON")    = COMMODITY_STYLE_TIME_COLON;
   scope().attr("COMMODITY_STYLE_THOUSANDS")     = COMMODITY_STYLE_THOUSANDS;
   scope().attr("COMMODITY_NOMARKET")            = COMMODITY_NOMARKET;
   scope().attr("COMMODITY_BUILTIN")             = COMMODITY_BUILTIN;

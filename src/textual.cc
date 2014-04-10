@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -416,7 +416,7 @@ void instance_t::read_next_directive(bool& error_flag)
         price_xact_directive(line);
         break;
       case 'Y':                 // set the current year
-        apply_year_directive(line);
+        apply_year_directive(line + 1);
         break;
       }
     }
@@ -865,7 +865,7 @@ void instance_t::apply_year_directive(char * line)
   // This must be set to the last day of the year, otherwise partial
   // dates like "11/01" will refer to last year's november, not the
   // current year.
-  unsigned short year(lexical_cast<unsigned short>(skip_ws(line + 1)));
+  unsigned short year(lexical_cast<unsigned short>(skip_ws(line)));
   DEBUG("times.epoch", "Setting current year to " << year);
   epoch = datetime_t(date_t(year, 12, 31));
 }
@@ -977,6 +977,11 @@ void instance_t::account_alias_directive(account_t * account, string alias)
   // (account), add a reference to the account in the `account_aliases'
   // map, which is used by the post parser to resolve alias references.
   trim(alias);
+  // Ensure that no alias like "alias Foo=Foo" is registered.
+  if ( alias == account->fullname()) {
+    throw_(parse_error, _f("Illegal alias %1%=%2%")
+           % alias % account->fullname());
+  }
   std::pair<accounts_map::iterator, bool> result =
     context.journal->account_aliases.insert
       (accounts_map::value_type(alias, account));

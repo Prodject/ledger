@@ -4,8 +4,8 @@ PROJECT(ledger)
 
 set(Ledger_VERSION_MAJOR 3)
 set(Ledger_VERSION_MINOR 0)
-set(Ledger_VERSION_PATCH 0)
-set(Ledger_VERSION_DATE  20130529)
+set(Ledger_VERSION_PATCH 1)
+set(Ledger_VERSION_DATE  20140327)
 
 enable_testing()
 
@@ -46,6 +46,10 @@ endif()
 find_package(PythonInterp)      # Used for running tests
 
 if(USE_PYTHON)
+  if(NOT BUILD_LIBRARY)
+    message(ERROR "Building the python module requires BUILD_LIBRARY=ON.")
+  endif()
+
   set(Python_ADDITIONAL_VERSIONS 2.7 2.6)
   find_package(PythonLibs)
   if(PYTHONLIBS_FOUND)
@@ -232,9 +236,6 @@ find_opt_library_and_header(EDIT_PATH histedit.h EDIT_LIB edit HAVE_EDIT)
 ########################################################################
 
 macro(add_ledger_library_dependencies _target)
-  if(BUILD_LIBRARY)
-    target_link_libraries(${_target} libledger)
-  endif()
   target_link_libraries(${_target} ${MPFR_LIB})
   target_link_libraries(${_target} ${GMP_LIB})
   if(HAVE_EDIT)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -109,6 +109,8 @@ public:
     HANDLER(permissive).report(out);
     HANDLER(price_db_).report(out);
     HANDLER(price_exp_).report(out);
+    HANDLER(recursive_aliases).report(out);
+    HANDLER(no_aliases).report(out);
     HANDLER(strict).report(out);
     HANDLER(value_expr_).report(out);
   }
@@ -164,6 +166,8 @@ public:
   OPTION(session_t, price_db_);
   OPTION(session_t, strict);
   OPTION(session_t, value_expr_);
+  OPTION(session_t, recursive_aliases);
+  OPTION(session_t, no_aliases);
 };
 
 /**

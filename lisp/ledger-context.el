@@ -1,6 +1,6 @@
 ;;; ledger-context.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2013 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -16,8 +16,8 @@
 ;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
-;; MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+;; MA 02110-1301 USA.
 
 
 ;;; Commentary:

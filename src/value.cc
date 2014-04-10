@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -870,6 +870,8 @@ bool value_t::is_less_than(const value_t& val) const
       return as_long() < val.as_long();
     case AMOUNT:
       return val.as_amount() > as_long();
+    case BALANCE:
+      return val.to_amount() > as_long();
     default:
       break;
     }
@@ -886,6 +888,8 @@ bool value_t::is_less_than(const value_t& val) const
         return as_amount() < val.as_amount();
       else
         return commodity_t::compare_by_commodity()(&as_amount(), &val.as_amount());
+    case BALANCE:
+      return val.to_amount() > as_amount();
     default:
       break;
     }
@@ -904,6 +908,8 @@ bool value_t::is_less_than(const value_t& val) const
       }
       return ! no_amounts;
     }
+    case BALANCE:
+      return val.to_amount() > to_amount();
     default:
       break;
     }
@@ -990,6 +996,8 @@ bool value_t::is_greater_than(const value_t& val) const
       return as_long() > val.as_long();
     case AMOUNT:
       return val.as_amount() < as_long();
+    case BALANCE:
+      return val.to_amount() < as_long();
     default:
       break;
     }
@@ -1001,6 +1009,8 @@ bool value_t::is_greater_than(const value_t& val) const
       return as_amount() > val.as_long();
     case AMOUNT:
       return as_amount() > val.as_amount();
+    case BALANCE:
+      return val.to_amount() < as_amount();
     default:
       break;
     }
@@ -1019,6 +1029,8 @@ bool value_t::is_greater_than(const value_t& val) const
       }
       return ! no_amounts;
     }
+    case BALANCE:
+      return val.to_amount() < to_amount();
     default:
       break;
     }

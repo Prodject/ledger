@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -113,6 +113,11 @@ std::size_t session_t::read_data(const string& master_account)
   if (HANDLED(day_break))
     journal->day_break = true;
 
+  if (HANDLED(recursive_aliases))
+    journal->recursive_aliases = true;
+  if (HANDLED(no_aliases))
+    journal->no_aliases = true;
+  
   if (HANDLED(permissive))
     journal->checking_style = journal_t::CHECK_PERMISSIVE;
   else if (HANDLED(pedantic))
@@ -344,11 +349,17 @@ option_t<session_t> * session_t::lookup_option(const char * p)
   case 'm':
     OPT(master_account_);
     break;
+  case 'n':
+    OPT(no_aliases);
+    break;
   case 'p':
     OPT(price_db_);
     else OPT(price_exp_);
     else OPT(pedantic);
     else OPT(permissive);
+    break;
+  case 'r':
+    OPT(recursive_aliases);
     break;
   case 's':
     OPT(strict);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2013, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -131,6 +131,8 @@ public:
   bool                  force_checking;
   bool                  check_payees;
   bool                  day_break;
+  bool                  recursive_aliases;
+  bool                  no_aliases;
   payee_mappings_t      payee_mappings;
   account_mappings_t    account_mappings;
   accounts_map          account_aliases;
@@ -166,6 +168,8 @@ public:
   bool        remove_account(account_t * acct);
   account_t * find_account(const string& name, bool auto_create = true);
   account_t * find_account_re(const string& regexp);
+
+  account_t * expand_aliases(string name);
 
   account_t * register_account(const string& name, post_t * post,
                                account_t * master = NULL);
