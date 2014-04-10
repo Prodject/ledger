@@ -1,3 +1,9 @@
+ledger (3.0.1-0mbudde1) saucy; urgency=low
+
+  * New release. 
+
+ -- Michael Budde <mbudde@gmail.com>  Thu, 10 Apr 2014 09:05:22 +0200
+
 ledger (3.0.0~20140109-0mbudde1) saucy; urgency=low
 
   * Snapshot release. 
