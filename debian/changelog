@@ -1,3 +1,13 @@
+ledger (3.0.2-0mbudde1) trusty; urgency=medium
+
+  * New release
+  * Cleanup build dependencies
+  * Run tests after build
+  * Add patch for fixing --no-aliases defaulting to on
+  * Add patch that removes a failing test in ledger3.texi
+
+ -- Michael Budde <mbudde@gmail.com>  Fri, 16 May 2014 13:24:41 +0200
+
 ledger (3.0.1-0mbudde1) saucy; urgency=low
 
   * New release. 
