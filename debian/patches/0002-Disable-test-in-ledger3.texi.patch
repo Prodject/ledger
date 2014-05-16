@@ -1,0 +1,21 @@
+From: Michael Budde <mbudde@gmail.com>
+Date: Fri, 16 May 2014 12:57:31 +0200
+Subject: Disable test in ledger3.texi
+
+---
+ doc/ledger3.texi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/doc/ledger3.texi b/doc/ledger3.texi
+index d5767ef..e2368f2 100644
+--- a/doc/ledger3.texi
++++ b/doc/ledger3.texi
+@@ -3139,7 +3139,7 @@ Say your book-keeping has gotten a bit out of date, and your Ledger
+ balance no longer matches your bank balance.  You can create an
+ adjustment transaction using balance assignments:
+ 
+-@smallexample @c input:validate
++@smallexample
+ 2012-03-10 Adjustment
+     Assets:Cash                         = $500.00
+     Equity:Adjustments
