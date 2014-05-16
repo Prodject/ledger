@@ -5,6 +5,7 @@ Maintainer: Michael Budde <mbudde@gmail.com>
 Build-Depends: debhelper (>= 7.0.50~),
                cdbs,
                cmake,
+               g++ (>= 4.8),
                libgmp3-dev,
                libmpfr-dev,
                libedit-dev,
