@@ -155,6 +155,7 @@ namespace {
 
     void payee_directive(char * line);
     void payee_alias_directive(const string& payee, string alias);
+    void payee_uuid_directive(const string& payee, string uuid);
 
     void commodity_directive(char * line);
     void commodity_alias_directive(commodity_t& comm, string alias);
@@ -917,6 +918,10 @@ void instance_t::account_directive(char * line)
 
     char * b = next_element(q);
     string keyword(q);
+    // Ensure there's an argument for the directives that need one.
+    if (! b && keyword != "default")
+      throw_(parse_error, _f("Account directive '%1%' requires an argument") % keyword);
+
     if (keyword == "alias") {
       account_alias_directive(account, b);
     }
@@ -1033,16 +1038,28 @@ void instance_t::payee_directive(char * line)
 
     char * b = next_element(p);
     string keyword(p);
+    if (! b)
+      throw_(parse_error, _f("Payee directive '%1%' requires an argument") % keyword);
+
     if (keyword == "alias")
       payee_alias_directive(payee, b);
+    if (keyword == "uuid")
+      payee_uuid_directive(payee, b);
   }
 }
 
 void instance_t::payee_alias_directive(const string& payee, string alias)
 {
   trim(alias);
-  context.journal->payee_mappings
-    .push_back(payee_mapping_t(mask_t(alias), payee));
+  context.journal->payee_alias_mappings
+    .push_back(payee_alias_mapping_t(mask_t(alias), payee));
+}
+
+void instance_t::payee_uuid_directive(const string& payee, string uuid)
+{
+  trim(uuid);
+  context.journal->payee_uuid_mappings
+    .push_back(payee_uuid_mapping_t(uuid, payee));
 }
 
 void instance_t::commodity_directive(char * line)
@@ -1063,6 +1080,10 @@ void instance_t::commodity_directive(char * line)
 
       char * b = next_element(q);
       string keyword(q);
+      // Ensure there's an argument for the directives that need one.
+      if (! b && keyword != "nomarket" && keyword != "default")
+        throw_(parse_error, _f("Commodity directive '%1%' requires an argument") % keyword);
+
       if (keyword == "alias")
         commodity_alias_directive(*commodity, b);
       else if (keyword == "value")
@@ -1246,6 +1267,14 @@ bool instance_t::general_directive(char * line)
 
   if (*p == '@' || *p == '!')
     p++;
+
+  // Ensure there's an argument for all directives that need one.
+  if (! arg &&
+      std::strcmp(p, "comment") != 0 && std::strcmp(p, "end") != 0
+      && std::strcmp(p, "python") != 0 && std::strcmp(p, "test") != 0 &&
+      *p != 'Y') {
+    throw_(parse_error, _f("Directive '%1%' requires an argument") % p);
+  }
 
   switch (*p) {
   case 'a':
@@ -1503,12 +1532,11 @@ post_t * instance_t::parse_post(char *          line,
           post->add_flags(POST_COST_IN_FULL);
           DEBUG("textual.parse", "line " << context.linenum << ": "
                 << "And it's for a total price");
+          next++;
         }
 
-        if (post->has_flags(POST_COST_VIRTUAL) && *(next + 1) == ')')
+        if (post->has_flags(POST_COST_VIRTUAL) && *next == ')')
           ++next;
-
-        beg = static_cast<std::streamsize>(++next - line);
 
         p = skip_ws(next);
         if (*p) {
@@ -1609,24 +1637,23 @@ post_t * instance_t::parse_post(char *          line,
             "line " << context.linenum << ": " << "post amount = " << amt);
 
       amount_t diff = amt;
-      amount_t tot;
 
       switch (account_total.type()) {
       case value_t::AMOUNT:
-        tot = account_total.as_amount();
+        diff -= account_total.as_amount();
         break;
 
       case value_t::BALANCE:
         if (optional<amount_t> comm_bal =
             account_total.as_balance().commodity_amount(amt.commodity()))
-          tot = *comm_bal;
+          diff -= *comm_bal;
         break;
 
       default:
         break;
       }
 
-      diff -= tot;
+      amount_t tot = amt - diff;
 
       DEBUG("post.assign",
             "line " << context.linenum << ": " << "diff = " << diff);
@@ -1861,6 +1888,17 @@ xact_t * instance_t::parse_xact(char *          line,
     }
     else {
       reveal_context = false;
+
+      if (!last_post) {
+        if (xact->has_tag(_("UUID"))) {
+          string uuid = xact->get_tag(_("UUID"))->to_string();
+          foreach (payee_uuid_mapping_t value, context.journal->payee_uuid_mappings) {
+            if (value.first.compare(uuid) == 0) {
+              xact->payee = value.second;
+            }
+          }
+        }
+      }
 
       if (post_t * post =
           parse_post(p, len - (p - line), account, xact.get())) {
