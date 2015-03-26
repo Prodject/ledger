@@ -26,15 +26,36 @@
 
 ;;; Code:
 
-(defun ledger-next-record-function ()
-  "Move point to next transaction."
-  (if (re-search-forward  ledger-payee-any-status-regex nil t)
-      (goto-char (match-beginning 0))
-    (goto-char (point-max))))
+;; (defun ledger-next-record-function ()
+;;   "Move point to next transaction."
+;; 	;; make sure we actually move to the next xact, even if we are the
+;; 	;; beginning of one now.
+;; 	(if (looking-at ledger-payee-any-status-regex)
+;; 			(forward-line))
+;;   (if (re-search-forward  ledger-payee-any-status-regex nil t)
+;;       (goto-char (match-beginning 0))
+;;     (goto-char (point-max))))
 
-(defun ledger-end-record-function ()
-  "Move point to end of transaction."
-  (forward-paragraph))
+;; (defun ledger-prev-record-function ()
+;;   "Move point to beginning of previous xact."
+;; 	(ledger-beginning-record-function)
+;; 	(re-search-backward ledger-xact-start-regex nil t))
+
+;; (defun ledger-beginning-record-function ()
+;; 	"Move point to the beginning of the current xact"
+;; 	(interactive)
+;; 	(unless (looking-at ledger-xact-start-regex)
+;; 		(re-search-backward ledger-xact-start-regex nil t)
+;; 		(beginning-of-line))
+;; 	(point))
+
+;; (defun ledger-end-record-function ()
+;;   "Move point to end of xact."
+;; 	(interactive)
+;;   (ledger-navigate-next-xact)
+;; 	(backward-char)
+;; 	(end-of-line)
+;; 	(point))
 
 (defun ledger-sort-find-start ()
   (if (re-search-forward ";.*Ledger-mode:.*Start sort" nil t)
@@ -69,11 +90,11 @@
 (defun ledger-sort-region (beg end)
   "Sort the region from BEG to END in chronological order."
   (interactive "r") ;; load beg and end from point and mark
-  ;; automagically
+										;; automagically
   (let ((new-beg beg)
         (new-end end)
         point-delta
-        (bounds (ledger-find-xact-extents (point)))
+        (bounds (ledger-navigate-find-xact-extents (point)))
         target-xact)
 
     (setq point-delta (- (point) (car bounds)))
@@ -82,12 +103,12 @@
     (save-excursion
       (save-restriction
         (goto-char beg)
-        (ledger-next-record-function) ;; make sure point is at the
-        ;; beginning of a xact
+				;; make sure point is at the beginning of a xact
+        (ledger-navigate-next-xact)
         (setq new-beg (point))
         (goto-char end)
-        (ledger-next-record-function) ;; make sure end of region is at
-        ;; the beginning of next record
+        (ledger-navigate-next-xact)
+				;; make sure end of region is at the beginning of next record
         ;; after the region
         (setq new-end (point))
         (narrow-to-region new-beg new-end)
@@ -96,8 +117,8 @@
         (let ((inhibit-field-text-motion t))
           (sort-subr
            nil
-           'ledger-next-record-function
-           'ledger-end-record-function
+           'ledger-navigate-next-xact
+           'ledger-navigate-end-of-xact
            'ledger-sort-startkey))))
 
     (goto-char (point-min))

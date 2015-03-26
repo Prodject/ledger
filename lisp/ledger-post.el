@@ -49,19 +49,6 @@
                 (const :tag "iswitchb completion" :iswitchb) )
   :group 'ledger-post)
 
-(defun ledger-post-all-accounts ()
-  "Return a list of all accounts in the buffer."
-  (let ((origin (point))
-        (ledger-post-list nil)
-        account elements)
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward ledger-post-line-regexp nil t)
-        (unless (and (>= origin (match-beginning 0))
-                     (< origin (match-end 0)))
-          (add-to-list 'ledger-post-list (ledger-regex-post-line-account))))
-      (nreverse ledger-post-list))))
-
 (declare-function iswitchb-read-buffer "iswitchb"
                   (prompt &optional default require-match start matches-set))
 
@@ -82,37 +69,8 @@ to choose from."
         (t
          (completing-read prompt choices))))
 
-(defvar ledger-post-current-list nil)
 
-(defun ledger-post-pick-account ()
-  "Insert an account entered by the user."
-  (interactive)
-  (let* ((account
-          (ledger-post-completing-read
-           "Account: " (or ledger-post-current-list
-                           (setq ledger-post-current-list
-                                 (ledger-post-all-accounts)))))
-         (account-len (length account))
-         (pos (point)))
-    (goto-char (line-beginning-position))
-    (when (re-search-forward ledger-post-line-regexp (line-end-position) t)
-      (let ((existing-len (length (ledger-regex-post-line-account))))
-        (goto-char (match-beginning ledger-regex-post-line-group-account))
-        (delete-region (match-beginning ledger-regex-post-line-group-account)
-                       (match-end ledger-regex-post-line-group-account))
-        (insert account)
-        (cond
-         ((> existing-len account-len)
-          (insert (make-string (- existing-len account-len) ? )))
-         ((< existing-len account-len)
-          (dotimes (n (- account-len existing-len))
-            (if (looking-at "[ \t]\\( [ \t]\\|\t\\)")
-                (delete-char 1)))))))
-    (goto-char pos)))
-
-
-
-(defsubst ledger-next-amount (&optional end)
+(defun ledger-next-amount (&optional end)
   "Move point to the next amount, as long as it is not past END.
 Return the width of the amount field as an integer and leave
 point at beginning of the commodity."
@@ -123,7 +81,6 @@ point at beginning of the commodity."
       (skip-syntax-forward " ")
       (- (or (match-end 4)
              (match-end 3)) (point)))))
-
 
 (defun ledger-next-account (&optional end)
   "Move point to the beginning of the next account, or status marker (!*), as long as it is not past END.
@@ -139,42 +96,48 @@ at beginning of account"
 
 (defun ledger-post-align-xact (pos)
   (interactive "d")
-  (let ((bounds (ledger-find-xact-extents pos)))
+  (let ((bounds (ledger-navigate-find-xact-extents pos)))
     (ledger-post-align-postings (car bounds) (cadr bounds))))
 
 (defun ledger-post-align-postings (&optional beg end)
   "Align all accounts and amounts within region, if there is no
 region align the posting on the current line."
   (interactive)
-  (assert (eq major-mode 'ledger-mode))
 
   (save-excursion
     (if (or (not (mark))
             (not (use-region-p)))
         (set-mark (point)))
 
-    (let* ((inhibit-modification-hooks t)
+    (let ((inhibit-modification-hooks t)
            (mark-first (< (mark) (point)))
-           (begin-region (if beg
-                             beg
-                           (if mark-first (mark) (point))))
-           (end-region (if end
-                           end
-                         (if mark-first (point) (mark))))
-           acct-start-column acct-end-column acct-adjust amt-width
+           acct-start-column acct-end-column acct-adjust amt-width amt-adjust
            (lines-left 1))
-      ;; Condition point and mark to the beginning and end of lines
-      (goto-char end-region)
-      (setq end-region (line-end-position))
-      (goto-char begin-region)
+
+			(unless beg (setq beg (if mark-first (mark) (point))))
+			(unless end (setq end (if mark-first (mark) (point))))
+		  ;; Condition point and mark to the beginning and end of lines
+      (goto-char end)
+      (setq end (line-end-position))
+      (goto-char beg)
       (goto-char
-       (setq begin-region
+       (setq beg
+             (line-beginning-position)))
+
+			(untabify beg end)
+
+			;; if untabify actually changed anything, then our begin and end are not correct.
+      (goto-char end)
+      (setq end (line-end-position))
+      (goto-char beg)
+      (goto-char
+       (setq beg
              (line-beginning-position)))
 
       ;; This is the guts of the alignment loop
       (while (and (or (setq acct-start-column (ledger-next-account (line-end-position)))
                       lines-left)
-                  (< (point) end-region))
+                  (< (point) end))
         (when acct-start-column
           (setq acct-end-column (save-excursion
                                   (goto-char (match-end 2))
@@ -198,8 +161,6 @@ region align the posting on the current line."
         (setq lines-left (not (eobp))))
       (setq inhibit-modification-hooks nil))))
 
-
-
 (defun ledger-post-edit-amount ()
   "Call 'calc-mode' and push the amount in the posting to the top of stack."
   (interactive)
@@ -219,29 +180,6 @@ region align the posting on the current line."
               (goto-char (line-end-position))
             (insert "  "))
           (calc))))))
-
-(defun ledger-post-prev-xact ()
-  "Move point to the previous transaction."
-  (interactive)
-  (backward-paragraph)
-  (when (re-search-backward ledger-xact-line-regexp nil t)
-    (goto-char (match-beginning 0))
-    (re-search-forward ledger-post-line-regexp)
-    (goto-char (match-end ledger-regex-post-line-group-account))))
-
-(defun ledger-post-next-xact ()
-  "Move point to the next transaction."
-  (interactive)
-  (when (re-search-forward ledger-xact-line-regexp nil t)
-    (goto-char (match-beginning 0))
-    (re-search-forward ledger-post-line-regexp)
-    (goto-char (match-end ledger-regex-post-line-group-account))))
-
-(defun ledger-post-setup ()
-  "Configure `ledger-mode' to auto-align postings."
-  (add-hook 'after-save-hook #'(lambda () (setq ledger-post-current-list nil)) t t))
-
-
 
 (provide 'ledger-post)
 

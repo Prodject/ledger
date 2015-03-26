@@ -65,6 +65,11 @@ text that should replace the format specifier."
   :type 'alist
   :group 'ledger-report)
 
+(defcustom ledger-report-auto-refresh t
+	"If t then automatically rerun the report when the ledger buffer is saved."
+	:type 'boolean
+	:group 'ledger-report)
+
 (defvar ledger-report-buffer-name "*Ledger Report*")
 
 (defvar ledger-report-name nil)
@@ -93,7 +98,8 @@ text that should replace the format specifier."
     (define-key map [(shift ?r)] 'ledger-report-reverse-lines)
     (define-key map [?s] 'ledger-report-save)
     (define-key map [?k] 'ledger-report-kill)
-    (define-key map [?e] 'ledger-report-edit)
+    (define-key map [?e] 'ledger-report-edit-report)
+    (define-key map [( shift ?e)] 'ledger-report-edit-reports)
     (define-key map [?q] 'ledger-report-quit)
     (define-key map [?g] 'ledger-report-redo)
     (define-key map [(control ?c) (control ?l) (control ?r)]
@@ -320,7 +326,7 @@ Optional EDIT the command."
                                                                    (save-excursion
                                                                      (find-file file)
                                                                      (widen)
-                                                                     (ledger-goto-line line)
+                                                                     (ledger-navigate-to-line line)
                                                                      (point-marker))))))
             (add-text-properties (line-beginning-position) (line-end-position)
                                  (list 'face 'ledger-font-report-clickable-face))
@@ -360,18 +366,27 @@ Optional EDIT the command."
 (defun ledger-report-redo ()
   "Redo the report in the current ledger report buffer."
   (interactive)
-  (ledger-report-goto)
-  (setq buffer-read-only nil)
-  (erase-buffer)
-  (ledger-do-report ledger-report-cmd)
-  (setq buffer-read-only nil))
+	(let ((cur-buf (current-buffer)))
+ 		(if (and ledger-report-auto-refresh
+						 (or (string= (format-mode-line 'mode-name) "Ledger")
+								 (string= (format-mode-line 'mode-name) "Ledger-Report"))
+						 (get-buffer ledger-report-buffer-name))
+				(progn
+
+					(pop-to-buffer (get-buffer ledger-report-buffer-name))
+					(shrink-window-if-larger-than-buffer)
+					(setq buffer-read-only nil)
+					(erase-buffer)
+					(ledger-do-report ledger-report-cmd)
+					(setq buffer-read-only nil)
+					(pop-to-buffer cur-buf)))))
 
 (defun ledger-report-quit ()
-  "Quit the ledger report buffer by burying it."
-  (interactive)
-  (ledger-report-goto)
-  (set-window-configuration ledger-original-window-cfg)
-  (bury-buffer (get-buffer ledger-report-buffer-name)))
+	"Quit the ledger report buffer."
+	(interactive)
+	(ledger-report-goto)
+	(set-window-configuration ledger-original-window-cfg)
+	(kill-buffer (get-buffer ledger-report-buffer-name)))
 
 (defun ledger-report-kill ()
   "Kill the ledger report buffer."
@@ -379,10 +394,16 @@ Optional EDIT the command."
   (ledger-report-quit)
   (kill-buffer (get-buffer ledger-report-buffer-name)))
 
-(defun ledger-report-edit ()
+(defun ledger-report-edit-reports ()
   "Edit the defined ledger reports."
   (interactive)
   (customize-variable 'ledger-reports))
+
+(defun ledger-report-edit-report ()
+	(interactive)
+	"Edit the current report command in the mini buffer and re-run the report"
+	(setq ledger-report-cmd (ledger-report-read-command ledger-report-cmd))
+	(ledger-report-redo))
 
 (defun ledger-report-read-new-name ()
   "Read the name for a new report from the minibuffer."

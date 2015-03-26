@@ -839,7 +839,7 @@ void date_parser_t::determine_when(date_parser_t::lexer_t::token_t& tok,
     specifier.month =
       date_specifier_t::month_type
         (boost::get<date_time::months_of_year>(*tok.value));
-    tok = lexer.next_token();
+    tok = lexer.peek_token();
     switch (tok.kind) {
     case lexer_t::token_t::TOK_A_YEAR:
       specifier.year = boost::get<date_specifier_t::year_type>(*tok.value);
@@ -847,7 +847,6 @@ void date_parser_t::determine_when(date_parser_t::lexer_t::token_t& tok,
     case lexer_t::token_t::END_REACHED:
       break;
     default:
-      tok.unexpected();
       break;
     }
     break;
@@ -1813,6 +1812,7 @@ void times_initialize()
     readers.push_back(shared_ptr<date_io_t>(new date_io_t("%Y/%m/%d", true)));
     readers.push_back(shared_ptr<date_io_t>(new date_io_t("%Y/%m", true)));
     readers.push_back(shared_ptr<date_io_t>(new date_io_t("%y/%m/%d", true)));
+    readers.push_back(shared_ptr<date_io_t>(new date_io_t("%Y-%m-%d", true)));
 
     is_initialized = true;
   }

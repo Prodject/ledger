@@ -35,7 +35,9 @@
 (require 'ledger-context)
 (require 'ledger-exec)
 (require 'ledger-fonts)
+(require 'ledger-fontify)
 (require 'ledger-init)
+(require 'ledger-navigate)
 (require 'ledger-occur)
 (require 'ledger-post)
 (require 'ledger-reconcile)
@@ -74,14 +76,16 @@
 
 (defun ledger-mode-dump-configuration ()
   "Dump all customizations"
+	(interactive)
   (find-file "ledger-mode-dump")
   (ledger-mode-dump-group 'ledger))
 
 
-(defsubst ledger-current-year ()
+(defun ledger-current-year ()
   "The default current year for adding transactions."
   (format-time-string "%Y"))
-(defsubst ledger-current-month ()
+
+(defun ledger-current-month ()
   "The default current month for adding transactions."
   (format-time-string "%m"))
 
@@ -93,8 +97,7 @@
 
 (defun ledger-read-account-with-prompt (prompt)
   (let* ((context (ledger-context-at-point))
-         (default (if (and (eq (ledger-context-line-type context) 'acct-transaction)
-                           (eq (ledger-context-current-field context) 'account))
+         (default (if (eq (ledger-context-line-type context) 'acct-transaction)
                       (regexp-quote (ledger-context-field-value context 'account))
                     nil)))
     (ledger-read-string-with-default prompt default)))
@@ -222,18 +225,10 @@ With a prefix argument, remove the effective date. "
 (defun ledger-mode-clean-buffer ()
   "indent, remove multiple linfe feeds and sort the buffer"
   (interactive)
+	(untabify (point-min) (point-max))
   (ledger-sort-buffer)
   (ledger-post-align-postings (point-min) (point-max))
   (ledger-mode-remove-extra-lines))
-
-
-(defvar ledger-mode-syntax-table
-  (let ((table (make-syntax-table)))
-    ;; Support comments via the syntax table
-    (modify-syntax-entry ?\; "< b" table)
-    (modify-syntax-entry ?\n "> b" table)
-    table)
-  "Syntax table for `ledger-mode' buffers.")
 
 (defvar ledger-mode-map
   (let ((map (make-sparse-keymap)))
@@ -267,8 +262,8 @@ With a prefix argument, remove the effective date. "
     (define-key map [(control ?c) (control ?o) (control ?r)] 'ledger-report)
     (define-key map [(control ?c) (control ?o) (control ?s)] 'ledger-report-save)
 
-    (define-key map [(meta ?p)] 'ledger-post-prev-xact)
-    (define-key map [(meta ?n)] 'ledger-post-next-xact)
+    (define-key map [(meta ?p)] 'ledger-navigate-prev-xact)
+    (define-key map [(meta ?n)] 'ledger-navigate-next-xact-or-directive)
     map)
   "Keymap for `ledger-mode'.")
 
@@ -310,40 +305,32 @@ With a prefix argument, remove the effective date. "
     ["Re-run Report" ledger-report-redo ledger-works]
     ["Save Report" ledger-report-save ledger-works]
     ["Edit Report" ledger-report-edit ledger-works]
-    ["Kill Report" ledger-report-kill ledger-works]
-    ))
+    ["Kill Report" ledger-report-kill ledger-works]))
 
 ;;;###autoload
+
 (define-derived-mode ledger-mode text-mode "Ledger"
   "A mode for editing ledger data files."
   (ledger-check-version)
   (ledger-schedule-check-available)
-  (ledger-post-setup)
-
-  (set-syntax-table ledger-mode-syntax-table)
-  (set (make-local-variable 'comment-start) "; ")
-  (set (make-local-variable 'comment-end) "")
-  (set (make-local-variable 'indent-tabs-mode) nil)
 
   (if (boundp 'font-lock-defaults)
-      (set (make-local-variable 'font-lock-defaults)
-           '(ledger-font-lock-keywords nil t)))
-  (setq font-lock-extend-region-functions
-        (list #'font-lock-extend-region-wholelines))
-  (setq font-lock-multiline nil)
+      (setq-local font-lock-defaults
+									'(ledger-font-lock-keywords t t nil nil
+																							(font-lock-fontify-region-function . ledger-fontify-buffer-part))))
 
-  (set (make-local-variable 'pcomplete-parse-arguments-function)
-       'ledger-parse-arguments)
-  (set (make-local-variable 'pcomplete-command-completion-function)
-       'ledger-complete-at-point)
+	(setq-local pcomplete-parse-arguments-function 'ledger-parse-arguments)
+	(setq-local pcomplete-command-completion-function 'ledger-complete-at-point)
   (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t)
+	(add-hook 'after-save-hook 'ledger-report-redo)
 
   (add-hook 'post-command-hook 'ledger-highlight-xact-under-point nil t)
   (add-hook 'before-revert-hook 'ledger-occur-remove-all-overlays nil t)
 
   (ledger-init-load-init-file)
 
-  (set (make-local-variable 'indent-region-function) 'ledger-post-align-postings))
+  (setq-local indent-region-function 'ledger-post-align-postings))
+
 
 
 (defun ledger-set-year (newyear)

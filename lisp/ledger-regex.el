@@ -26,9 +26,9 @@
 
 (defconst ledger-amount-regex
   (concat "\\(  \\|\t\\| \t\\)[ \t]*-?"
-          "\\([A-Z$€£_]+ *\\)?"
+          "\\([A-Z$€£_(]+ *\\)?"
           "\\(-?[0-9,\\.]+?\\)"
-          "\\(.[0-9]+\\)?"
+          "\\(.[0-9)]+\\)?"
           "\\( *[[:word:]€£_\"]+\\)?"
           "\\([ \t]*[@={]@?[^\n;]+?\\)?"
           "\\([ \t]+;.+?\\|[ \t]*\\)?$"))
@@ -329,7 +329,29 @@
           ledger-iso-date-regexp
           "\\([ *!]+\\)"  ;; mark
           "\\((.*)\\)?"  ;; code
-          "\\(.*\\)"   ;; desc
+          "\\([[:word:] ]+\\)"   ;; desc
           "\\)"))
+
+(defconst ledger-xact-start-regex
+	(concat ledger-iso-date-regexp  ;; subexp 1
+          " ?\\([ *!]\\)"  ;; mark, subexp 5
+          " ?\\((.*)\\)?"  ;; code, subexp 6
+          " ?\\([^;\n]+\\)"   ;; desc, subexp 7
+					"\\(\n\\|;.*\\)" ;; comment, subexp 8
+          ))
+
+(defconst ledger-posting-regex
+	(concat "^[ \t]+ ?"  ;; initial white space
+					"\\([*!]\\)? ?" ;; state, subexpr 1
+					"\\(.+?\\(\n\\|[ \t][ \t]\\)\\)"  ;; account, subexpr 2
+					"\\([^;\n]*\\)"  ;; amount, subexpr 4
+					"\\(.*\\)" ;; comment, subexpr 5
+					))
+
+
+
+(defconst ledger-directive-start-regex
+	"[=~;#%|\\*[A-Za-z]")
+
 
 (provide 'ledger-regex)
