@@ -18,7 +18,7 @@ Build-Depends: debhelper (>= 9),
                libboost-test-dev,
                libboost-python-dev,
                python2.7-dev
-Standards-Version: 3.9.2
+Standards-Version: 3.9.5
 Homepage: http://ledger-cli.org
 Vcs-Browser: http://github.com/mbudde/ledger
 Vcs-Git: git://github.com/mbudde/ledger.git
