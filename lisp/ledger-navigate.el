@@ -23,59 +23,65 @@
 ;;; Commentary:
 ;;
 
+;;; Code:
 
-(provide 'ledger-navigate)
+(require 'ledger-regex)
+(require 'ledger-context)
 
 (defun ledger-navigate-next-xact ()
-	"Move point to beginning of next xact."
- 	;; make sure we actually move to the next xact, even if we are the
- 	;; beginning of one now.
- 	(if (looking-at ledger-payee-any-status-regex)
- 			(forward-line))
-   (if (re-search-forward  ledger-payee-any-status-regex nil t)
-       (goto-char (match-beginning 0))
-     (goto-char (point-max))))
+  "Move point to beginning of next xact."
+  ;; make sure we actually move to the next xact, even if we are the
+  ;; beginning of one now.
+  (if (looking-at ledger-payee-any-status-regex)
+      (forward-line))
+  (if (re-search-forward  ledger-payee-any-status-regex nil t)
+      (goto-char (match-beginning 0))
+    (goto-char (point-max))))
 
 (defun ledger-navigate-start-xact-or-directive-p ()
-	"return t if at the beginning of an empty line or line
-beginning with whitespace"
-	(not (looking-at "[ \t]\\|\\(^$\\)")))
+  "Return t if at the beginning of an empty or all-whitespace line."
+  (not (looking-at "[ \t]\\|\\(^$\\)")))
 
 (defun ledger-navigate-next-xact-or-directive ()
-	"move to the beginning of the next xact or directive"
-	(interactive)
-	(beginning-of-line)
-	(if (ledger-navigate-start-xact-or-directive-p) ; if we are the start of an xact, move forward to the next xact
-			(progn
-				(forward-line)
-				(if (not (ledger-navigate-start-xact-or-directive-p)) ; we have moved forward and are not at another xact, recurse forward
-						(ledger-navigate-next-xact-or-directive)))
-		(while (not	(or (eobp)  ; we didn't start off at the beginning of an xact
-										(ledger-navigate-start-xact-or-directive-p)))
-			(forward-line))))
+  "Move to the beginning of the next xact or directive."
+  (interactive)
+  (beginning-of-line)
+  (if (ledger-navigate-start-xact-or-directive-p) ; if we are the start of an xact, move forward to the next xact
+      (progn
+        (forward-line)
+        (if (not (ledger-navigate-start-xact-or-directive-p)) ; we have moved forward and are not at another xact, recurse forward
+            (ledger-navigate-next-xact-or-directive)))
+    (while (not (or (eobp)  ; we didn't start off at the beginning of an xact
+                    (ledger-navigate-start-xact-or-directive-p)))
+      (forward-line))))
 
-(defun ledger-navigate-prev-xact ()
+(defun ledger-navigate-prev-xact-or-directive ()
   "Move point to beginning of previous xact."
-	(ledger-navigate-beginning-of-xact)
-	(re-search-backward ledger-xact-start-regex nil t))
+  (interactive)
+  (let ((context (car (ledger-context-at-point))))
+    (when (equal context 'acct-transaction)
+      (ledger-navigate-beginning-of-xact))
+    (beginning-of-line)
+    (re-search-backward "^[[:graph:]]" nil t)))
 
 (defun ledger-navigate-beginning-of-xact ()
-	"Move point to the beginning of the current xact"
-	(interactive)
-	;; need to start at the beginning of a line incase we are in the first line of an xact already.
-	(beginning-of-line)
-	(unless (looking-at ledger-xact-start-regex)
-		(re-search-backward ledger-xact-start-regex nil t)
-		(beginning-of-line))
-	(point))
+  "Move point to the beginning of the current xact."
+  (interactive)
+  ;; need to start at the beginning of a line incase we are in the first line of an xact already.
+  (beginning-of-line)
+  (let ((sreg (concat "^\\(=\\|~\\|" ledger-iso-date-regexp "\\)")))
+    (unless (looking-at sreg)
+      (re-search-backward sreg nil t)
+      (beginning-of-line)))
+  (point))
 
 (defun ledger-navigate-end-of-xact ()
   "Move point to end of xact."
-	(interactive)
+  (interactive)
   (ledger-navigate-next-xact-or-directive)
-	(backward-char)
-	(end-of-line)
-	(point))
+  (re-search-backward ".$")
+  (end-of-line)
+  (point))
 
 (defun ledger-navigate-to-line (line-number)
   "Rapidly move point to line LINE-NUMBER."
@@ -89,6 +95,74 @@ Requires empty line separating xacts."
   (save-excursion
     (goto-char pos)
     (list (ledger-navigate-beginning-of-xact)
-					(ledger-navigate-end-of-xact))))
+          (ledger-navigate-end-of-xact))))
+
+(defun ledger-navigate-find-directive-extents (pos)
+  "Return the extents of the directive at POS."
+  (goto-char pos)
+  (let ((begin (progn (beginning-of-line)
+                      (point)))
+        (end (progn (end-of-line)
+                    (+ 1 (point)))))
+    ;; handle block comments here
+    (beginning-of-line)
+    (if (looking-at " *;")
+        (progn
+          (while (and (looking-at " *;")
+                      (> (point) (point-min)))
+            (forward-line -1))
+          ;; We are either at the beginning of the buffer, or we found
+          ;; a line outside the comment.  If we are not at the
+          ;; beginning of the buffer then we need to move forward a
+          ;; line.
+          (if (> (point) (point-min))
+              (progn (forward-line 1)
+                     (beginning-of-line)))
+          (setq begin (point))
+          (goto-char pos)
+          (beginning-of-line)
+          (while (and (looking-at " *;")
+                      (< (point) (point-max)))
+            (forward-line 1))
+          (setq end (point))))
+    (list begin end)))
+
+(defun ledger-navigate-block-comment (pos)
+  "Move past the block comment at POS, and return its extents."
+  (interactive "d")
+  (goto-char pos)
+  (let ((begin (progn (beginning-of-line)
+                      (point)))
+        (end (progn (end-of-line)
+                    (point))))
+    ;; handle block comments here
+    (beginning-of-line)
+    (if (looking-at " *;")
+        (progn
+          (while (and (looking-at " *;")
+                      (> (point) (point-min)))
+            (forward-line -1))
+          (setq begin (point))
+          (goto-char pos)
+          (beginning-of-line)
+          (while (and (looking-at " *;")
+                      (< (point) (point-max)))
+            (forward-line 1))
+          (setq end (point))))
+    (list begin end)))
+
+
+(defun ledger-navigate-find-element-extents (pos)
+  "Return list containing beginning and end of the entity surrounding POS."
+  (interactive "d")
+  (save-excursion
+    (goto-char pos)
+    (beginning-of-line)
+    (if (looking-at "[ =~0-9\\[]")
+        (ledger-navigate-find-xact-extents pos)
+      (ledger-navigate-find-directive-extents pos))))
+
+
+(provide 'ledger-navigate)
 
 ;;; ledger-navigate.el ends here

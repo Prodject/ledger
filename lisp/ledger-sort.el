@@ -1,6 +1,6 @@
 ;;; ledger-xact.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2016 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -26,46 +26,19 @@
 
 ;;; Code:
 
-;; (defun ledger-next-record-function ()
-;;   "Move point to next transaction."
-;; 	;; make sure we actually move to the next xact, even if we are the
-;; 	;; beginning of one now.
-;; 	(if (looking-at ledger-payee-any-status-regex)
-;; 			(forward-line))
-;;   (if (re-search-forward  ledger-payee-any-status-regex nil t)
-;;       (goto-char (match-beginning 0))
-;;     (goto-char (point-max))))
-
-;; (defun ledger-prev-record-function ()
-;;   "Move point to beginning of previous xact."
-;; 	(ledger-beginning-record-function)
-;; 	(re-search-backward ledger-xact-start-regex nil t))
-
-;; (defun ledger-beginning-record-function ()
-;; 	"Move point to the beginning of the current xact"
-;; 	(interactive)
-;; 	(unless (looking-at ledger-xact-start-regex)
-;; 		(re-search-backward ledger-xact-start-regex nil t)
-;; 		(beginning-of-line))
-;; 	(point))
-
-;; (defun ledger-end-record-function ()
-;;   "Move point to end of xact."
-;; 	(interactive)
-;;   (ledger-navigate-next-xact)
-;; 	(backward-char)
-;; 	(end-of-line)
-;; 	(point))
 
 (defun ledger-sort-find-start ()
+  "Find the beginning of a sort region"
   (if (re-search-forward ";.*Ledger-mode:.*Start sort" nil t)
       (match-end 0)))
 
 (defun ledger-sort-find-end ()
+  "Find the end of a sort region"
   (if (re-search-forward ";.*Ledger-mode:.*End sort" nil t)
       (match-end 0)))
 
 (defun ledger-sort-insert-start-mark ()
+  "Insert a marker to start a sort region"
   (interactive)
   (save-excursion
     (goto-char (point-min))
@@ -75,6 +48,7 @@
   (insert "\n; Ledger-mode: Start sort\n\n"))
 
 (defun ledger-sort-insert-end-mark ()
+  "Insert a marker to end a sort region"
   (interactive)
   (save-excursion
     (goto-char (point-min))
@@ -90,7 +64,7 @@
 (defun ledger-sort-region (beg end)
   "Sort the region from BEG to END in chronological order."
   (interactive "r") ;; load beg and end from point and mark
-										;; automagically
+  ;; automagically
   (let ((new-beg beg)
         (new-end end)
         point-delta
@@ -103,12 +77,14 @@
     (save-excursion
       (save-restriction
         (goto-char beg)
-				;; make sure point is at the beginning of a xact
+        ;; make sure point is at the beginning of a xact
         (ledger-navigate-next-xact)
+        (unless (looking-at ledger-payee-any-status-regex)
+          (ledger-navigate-next-xact))
         (setq new-beg (point))
         (goto-char end)
         (ledger-navigate-next-xact)
-				;; make sure end of region is at the beginning of next record
+        ;; make sure end of region is at the beginning of next record
         ;; after the region
         (setq new-end (point))
         (narrow-to-region new-beg new-end)

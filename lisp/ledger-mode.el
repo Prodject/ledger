@@ -1,6 +1,6 @@
 ;;; ledger-mode.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2016 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,6 +27,7 @@
 ;;; Code:
 
 (require 'ledger-regex)
+(require 'cus-edit)
 (require 'esh-util)
 (require 'esh-arg)
 (require 'easymenu)
@@ -61,11 +62,12 @@
 (defconst ledger-mode-version "3.0.0")
 
 (defun ledger-mode-dump-variable (var)
+  "Format VAR for dump to buffer."
   (if var
       (insert (format "         %s: %S\n" (symbol-name var) (eval var)))))
 
 (defun ledger-mode-dump-group (group)
-  "Dump GROUP customizations to current buffer"
+  "Dump GROUP customizations to current buffer."
   (let ((members (custom-group-members group nil)))
     (dolist (member members)
       (cond ((eq (cadr member) 'custom-group)
@@ -75,8 +77,8 @@
              (ledger-mode-dump-variable (car member)))))))
 
 (defun ledger-mode-dump-configuration ()
-  "Dump all customizations"
-	(interactive)
+  "Dump all customizations."
+  (interactive)
   (find-file "ledger-mode-dump")
   (ledger-mode-dump-group 'ledger))
 
@@ -96,14 +98,15 @@
   "Start a ledger session with the current month, but make it customizable to ease retro-entry.")
 
 (defun ledger-read-account-with-prompt (prompt)
-  (let* ((context (ledger-context-at-point))
-         (default (if (eq (ledger-context-line-type context) 'acct-transaction)
-                      (regexp-quote (ledger-context-field-value context 'account))
-                    nil)))
-    (ledger-read-string-with-default prompt default)))
+  "Read an account from the minibuffer with PROMPT."
+  (let ((context (ledger-context-at-point)))
+    (ledger-read-string-with-default prompt
+                                     (if (eq (ledger-context-current-field context) 'account)
+                                         (regexp-quote (ledger-context-field-value context 'account))
+                                       nil))))
 
 (defun ledger-read-date (prompt)
-  "Returns user-supplied date after `PROMPT', defaults to today."
+  "Return user-supplied date after `PROMPT', defaults to today."
   (let* ((default (ledger-year-and-month))
          (date (read-string prompt default
                             'ledger-minibuffer-history)))
@@ -122,14 +125,19 @@
                          ": "))
                nil 'ledger-minibuffer-history default))
 
-(defun ledger-display-balance-at-point ()
+(defun ledger-display-balance-at-point (&optional arg)
   "Display the cleared-or-pending balance.
-And calculate the target-delta of the account being reconciled."
-  (interactive)
+And calculate the target-delta of the account being reconciled.
+
+With prefix argument \\[universal-argument] ask for the target commodity and convert
+the balance into that."
+  (interactive "P")
   (let* ((account (ledger-read-account-with-prompt "Account balance to show"))
+         (target-commodity (when arg (ledger-read-commodity-with-prompt "Target commodity: ")))
          (buffer (current-buffer))
          (balance (with-temp-buffer
-                    (ledger-exec-ledger buffer (current-buffer) "cleared" account)
+                    (apply 'ledger-exec-ledger buffer (current-buffer) "cleared" account
+                            (when target-commodity (list "-X" target-commodity)))
                     (if (> (buffer-size) 0)
                         (buffer-substring-no-properties (point-min) (1- (point-max)))
                       (concat account " is empty.")))))
@@ -148,7 +156,7 @@ And calculate the target-delta of the account being reconciled."
       (message balance))))
 
 (defun ledger-magic-tab (&optional interactively)
-  "Decide what to with with <TAB>.
+  "Decide what to with with <TAB>, INTERACTIVELY.
 Can indent, complete or align depending on context."
   (interactive "p")
   (if (= (point) (line-beginning-position))
@@ -156,7 +164,7 @@ Can indent, complete or align depending on context."
     (if (and (> (point) 1)
              (looking-back "\\([^ \t]\\)" 1))
         (ledger-pcomplete interactively)
-      (ledger-post-align-postings))))
+      (ledger-post-align-postings (line-beginning-position) (line-end-position)))))
 
 (defvar ledger-mode-abbrev-table)
 
@@ -166,14 +174,14 @@ Can indent, complete or align depending on context."
                        ledger-default-date-format)))
 
 (defun ledger-remove-effective-date ()
-  "Removes the effective date from a transaction or posting."
+  "Remove the effective date from a transaction or posting."
   (interactive)
   (let ((context (car (ledger-context-at-point))))
     (save-excursion
       (save-restriction
         (narrow-to-region (point-at-bol) (point-at-eol))
         (beginning-of-line)
-        (cond ((eq 'pmnt-transaction context)
+        (cond ((eq 'xact context)
                (re-search-forward ledger-iso-date-regexp)
                (when (= (char-after) ?=)
                  (let ((eq-pos (point)))
@@ -196,7 +204,7 @@ If `DATE' is nil, prompt the user a date.
 Replace the current effective date if there's one in the same
 line.
 
-With a prefix argument, remove the effective date. "
+With a prefix argument, remove the effective date."
   (interactive)
   (if (and (listp current-prefix-arg)
            (= 4 (prefix-numeric-value current-prefix-arg)))
@@ -206,7 +214,7 @@ With a prefix argument, remove the effective date. "
       (save-restriction
         (narrow-to-region (point-at-bol) (point-at-eol))
         (cond
-         ((eq 'pmnt-transaction context)
+         ((eq 'xact context)
           (beginning-of-line)
           (re-search-forward ledger-iso-date-regexp)
           (when (= (char-after) ?=)
@@ -218,17 +226,35 @@ With a prefix argument, remove the effective date. "
           (insert "  ; [=" date-string "]")))))))
 
 (defun ledger-mode-remove-extra-lines ()
+  "Get rid of multiple empty lines."
   (goto-char (point-min))
   (while (re-search-forward "\n\n\\(\n\\)+" nil t)
     (replace-match "\n\n")))
 
 (defun ledger-mode-clean-buffer ()
-  "indent, remove multiple linfe feeds and sort the buffer"
+  "Indent, remove multiple line feeds and sort the buffer."
   (interactive)
-	(untabify (point-min) (point-max))
-  (ledger-sort-buffer)
-  (ledger-post-align-postings (point-min) (point-max))
-  (ledger-mode-remove-extra-lines))
+  (let ((start (point-min-marker))
+        (end (point-max-marker)))
+    (goto-char start)
+    (ledger-navigate-beginning-of-xact)
+    (beginning-of-line)
+    (let ((target (buffer-substring (point) (progn
+                                              (end-of-line)
+                                              (point)))))
+      (untabify start end)
+      (ledger-sort-buffer)
+      (ledger-post-align-postings start end)
+      (ledger-mode-remove-extra-lines)
+      (goto-char start)
+      (search-forward target))))
+
+(defvar ledger-mode-syntax-table
+  (let ((table (make-syntax-table text-mode-syntax-table)))
+    (modify-syntax-entry ?\; "<" table)
+    (modify-syntax-entry ?\n ">" table)
+    table)
+  "Syntax table in use in `ledger-mode' buffers.")
 
 (defvar ledger-mode-map
   (let ((map (make-sparse-keymap)))
@@ -262,8 +288,9 @@ With a prefix argument, remove the effective date. "
     (define-key map [(control ?c) (control ?o) (control ?r)] 'ledger-report)
     (define-key map [(control ?c) (control ?o) (control ?s)] 'ledger-report-save)
 
-    (define-key map [(meta ?p)] 'ledger-navigate-prev-xact)
+    (define-key map [(meta ?p)] 'ledger-navigate-prev-xact-or-directive)
     (define-key map [(meta ?n)] 'ledger-navigate-next-xact-or-directive)
+    (define-key map [(meta ?q)] 'ledger-post-align-dwim)
     map)
   "Keymap for `ledger-mode'.")
 
@@ -271,9 +298,10 @@ With a prefix argument, remove the effective date. "
   "Ledger menu"
   '("Ledger"
     ["Narrow to REGEX" ledger-occur]
+    ["Show all transactions" ledger-occur-mode ledger-occur-mode]
     ["Ledger Statistics" ledger-display-ledger-stats ledger-works]
     "---"
-    ["Show upcoming transactions" ledger-schedule-upcoming ledger-schedule-available]
+    ["Show upcoming transactions" ledger-schedule-upcoming]
     ["Add Transaction (ledger xact)" ledger-add-transaction ledger-works]
     ["Complete Transaction" ledger-fully-complete-xact]
     ["Delete Transaction" ledger-delete-current-transaction]
@@ -308,28 +336,25 @@ With a prefix argument, remove the effective date. "
     ["Kill Report" ledger-report-kill ledger-works]))
 
 ;;;###autoload
-
 (define-derived-mode ledger-mode text-mode "Ledger"
   "A mode for editing ledger data files."
   (ledger-check-version)
-  (ledger-schedule-check-available)
+  (when (boundp 'font-lock-defaults)
+    (setq font-lock-defaults
+          '(ledger-font-lock-keywords t t nil nil
+                                      (font-lock-fontify-region-function . ledger-fontify-buffer-part))))
 
-  (if (boundp 'font-lock-defaults)
-      (setq-local font-lock-defaults
-									'(ledger-font-lock-keywords t t nil nil
-																							(font-lock-fontify-region-function . ledger-fontify-buffer-part))))
-
-	(setq-local pcomplete-parse-arguments-function 'ledger-parse-arguments)
-	(setq-local pcomplete-command-completion-function 'ledger-complete-at-point)
+  (set (make-local-variable 'pcomplete-parse-arguments-function) 'ledger-parse-arguments)
+  (set (make-local-variable 'pcomplete-command-completion-function) 'ledger-complete-at-point)
   (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t)
-	(add-hook 'after-save-hook 'ledger-report-redo)
+  (add-hook 'after-save-hook 'ledger-report-redo)
 
   (add-hook 'post-command-hook 'ledger-highlight-xact-under-point nil t)
-  (add-hook 'before-revert-hook 'ledger-occur-remove-all-overlays nil t)
 
   (ledger-init-load-init-file)
+  (setq comment-start ";")
 
-  (setq-local indent-region-function 'ledger-post-align-postings))
+  (set (make-local-variable 'indent-region-function) 'ledger-post-align-postings))
 
 
 

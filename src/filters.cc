@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2016, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -707,7 +707,7 @@ namespace {
     insert_prices_in_map(price_map_t& _all_prices)
       : all_prices(_all_prices) {}
 
-    void operator()(datetime_t& date, const amount_t& price) {
+    void operator()(const datetime_t& date, const amount_t& price) {
       all_prices.insert(price_map_t::value_type(date, price));
     }
   };
@@ -983,7 +983,7 @@ void interval_posts::flush()
                    sort_posts_by_date());
 
   // Determine the beginning interval by using the earliest post
-  if (all_posts.front() &&
+  if (all_posts.size() > 0 && all_posts.front() &&
       ! interval.find_period(all_posts.front()->date()))
     throw_(std::logic_error, _("Failed to find period for interval report"));
 

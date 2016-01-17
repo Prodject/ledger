@@ -1,6 +1,6 @@
 ;;; ledger-context.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2016 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,10 +32,10 @@
 ;; `ledger-single-line-config' macro to form the regex and list of
 ;; elements
 (defconst ledger-indent-string "\\(^[ \t]+\\)")
-(defconst ledger-status-string "\\([*! ]?\\)")
+(defconst ledger-status-string "\\(* \\|! \\)?")
 (defconst ledger-account-string "[\\[(]?\\(.*?\\)[])]?")
-(defconst ledger-separator-string "\\s-\\s-")
-(defconst ledger-amount-string "\\(-?[0-9]+[\\.,][0-9]*\\)")
+(defconst ledger-separator-string "\\(\\s-\\s-+\\)")
+(defconst ledger-amount-string "\\(-?[0-9]+\\(?:[\\.,][0-9]*\\)?\\)")
 (defconst ledger-comment-string "[ \t]*;[ \t]*\\(.*?\\)")
 (defconst ledger-nil-string "\\([ \t]\\)")
 (defconst ledger-commodity-string "\\(.+?\\)")
@@ -44,9 +44,11 @@
 (defconst ledger-payee-string "\\(.*\\)")
 
 (defun ledger-get-regex-str (name)
+  "Get the ledger regex of type NAME."
   (symbol-value (intern (concat "ledger-" (symbol-name name) "-string"))))
 
 (defun ledger-line-regex (elements)
+  "Get a regex to match ELEMENTS on a single line."
   (concat (apply 'concat (mapcar 'ledger-get-regex-str elements)) "[ \t]*$"))
 
 (defmacro ledger-single-line-config (&rest elements)
@@ -195,4 +197,4 @@ specified line, returns nil."
 
 (provide 'ledger-context)
 
-;;; ledger-report.el ends here
+;;; ledger-context.el ends here

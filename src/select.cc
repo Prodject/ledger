@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2016, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -145,10 +145,17 @@ value_t select_command(call_scope_t& args)
       string  thus_far = "";
 
       std::size_t cols = 0;
+#if HAVE_IOCTL
+      struct winsize ws;
+#endif
       if (report.HANDLED(columns_))
         cols = lexical_cast<std::size_t>(report.HANDLER(columns_).value);
       else if (const char * columns_env = std::getenv("COLUMNS"))
         cols = lexical_cast<std::size_t>(columns_env);
+#if HAVE_IOCTL
+      else if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != -1)
+          cols = ws.ws_col;
+#endif
       else
         cols = 80;
 
@@ -389,7 +396,7 @@ value_t select_command(call_scope_t& args)
 #if 0
       query_t          query;
       keep_details_t   keeper(true, true, true);
-      expr_t::ptr_op_t expr = 
+      expr_t::ptr_op_t expr =
         query.parse_args(string_value(arg).to_sequence(), keeper, false, true);
       report.HANDLER(limit_).on("#select", query.get_query(query_t::QUERY_LIMIT));
 #else

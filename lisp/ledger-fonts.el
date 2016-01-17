@@ -1,6 +1,6 @@
 ;;; ledger-fonts.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2016 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,11 @@
 (require 'ledger-regex)
 
 (defgroup ledger-faces nil "Ledger mode highlighting" :group 'ledger)
+
+(defface ledger-font-default-face
+	`((t :inherit default))
+	"Default face"
+	:group 'ledger-faces)
 
 (defface ledger-font-auto-xact-face
 	`((t :foreground "orange" :weight normal))
@@ -86,11 +91,16 @@
   :group 'ledger-faces)
 
 (defface ledger-font-directive-face
-  `((t :foreground "#009900" :weight normal))
+  `((t :inherit font-lock-preprocessor-face))
   "Default face for other transactions"
   :group 'ledger-faces)
 
 (defface ledger-font-account-directive-face
+  `((t :inherit ledger-font-directive-face))
+  "Default face for other transactions"
+  :group 'ledger-faces)
+
+(defface ledger-font-price-directive-face
   `((t :inherit ledger-font-directive-face))
   "Default face for other transactions"
   :group 'ledger-faces)
@@ -206,18 +216,17 @@
   :group 'ledger-faces)
 
 (defface ledger-occur-narrowed-face
-  `((t :foreground "grey70" :invisible t ))
+  `((t :inherit font-lock-comment-face :invisible t))
   "Default face for Ledger occur mode hidden transactions"
   :group 'ledger-faces)
 
 (defface ledger-occur-xact-face
-  `((((background dark)) :background "#1a1a1a" )
-    (t :background "#eee8d5" ))
+  `((t :inherit highlight))
   "Default face for Ledger occur mode shown transactions"
   :group 'ledger-faces)
 
 (defface ledger-font-comment-face
-  `((t :foreground "#93a1a1" :slant italic))
+  `((t :inherit font-lock-comment-face))
   "Face for Ledger comments"
   :group 'ledger-faces)
 

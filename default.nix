@@ -7,8 +7,7 @@ in
 
 stdenv.mkDerivation {
   name = "ledger-3.1.0.${rev}";
-
-  src = ./.;
+  src = builtins.filterSource (path: type: type != "unknown") ./.;
 
   buildInputs = [ cmake boost gmp mpfr libedit python texinfo gnused ];
 
@@ -18,7 +17,7 @@ stdenv.mkDerivation {
   # broken in ledger...
   postInstall = ''
     mkdir -p $out/share/emacs/site-lisp/
-    cp -v $src/lisp/*.el $out/share/emacs/site-lisp/
+    cp -v "$src/lisp/"*.el $out/share/emacs/site-lisp/
   '';
 
   meta = {

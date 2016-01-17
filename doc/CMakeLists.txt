@@ -5,6 +5,10 @@
 
 ########################################################################
 
+configure_file(
+  ${PROJECT_SOURCE_DIR}/doc/version.texi.in
+  ${PROJECT_BINARY_DIR}/doc/version.texi)
+
 if (USE_DOXYGEN)
   find_package(Doxygen)
   if (NOT DOXYGEN_FOUND)
@@ -26,6 +30,11 @@ else()
 endif()
 
 ########################################################################
+
+# BUILD_WEB_DOCS implies BUILD_DOCS
+if (BUILD_WEB_DOCS)
+  set(BUILD_DOCS 1)
+endif()
 
 if (BUILD_DOCS)
   find_program(MAKEINFO makeinfo)

@@ -25,6 +25,8 @@ macro(add_ledger_harness_tests _class)
           COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/RegressTests.py
           $<TARGET_FILE:ledger> ${PROJECT_SOURCE_DIR}
           ${TestFile} ${TEST_PYTHON_FLAGS})
+        set_tests_properties(${_class}Test_${TestFile_Name}
+          PROPERTIES ENVIRONMENT "TZ=${Ledger_TEST_TIMEZONE}")
         set_target_properties(check 
           PROPERTIES DEPENDS ${_class}Test_${TestFile_Name})
       endif()
@@ -36,17 +38,30 @@ add_subdirectory(manual)
 add_subdirectory(baseline)
 add_subdirectory(regress)
 
-# jww (2014-04-17): This is temporary until we find a fix.
-#if (PYTHONINTERP_FOUND)
-#  set(_class DocTests)
-#  file(GLOB ${_class}_TESTS ${PROJECT_SOURCE_DIR}/doc/*.texi)
-#  foreach(TestFile ${${_class}_TESTS})
-#    get_filename_component(TestFile_Name ${TestFile} NAME_WE)
-#    add_test(NAME ${_class}Test_${TestFile_Name}
-#      COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/DocTests.py
-#      --ledger $<TARGET_FILE:ledger> --file ${TestFile})
-#    set_target_properties(check PROPERTIES DEPENDS ${_class}Test_${TestFile_Name})
-#  endforeach()
-#endif()
+if (PYTHONINTERP_FOUND)
+  set(_class DocTests)
+  file(GLOB ${_class}_TESTS ${PROJECT_SOURCE_DIR}/doc/*.texi)
+  foreach(TestFile ${${_class}_TESTS})
+    get_filename_component(TestFile_Name ${TestFile} NAME_WE)
+    add_test(NAME ${_class}Test_${TestFile_Name}
+      COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/${_class}.py
+      --ledger $<TARGET_FILE:ledger> --file ${TestFile})
+    set_tests_properties(${_class}Test_${TestFile_Name}
+      PROPERTIES ENVIRONMENT "TZ=${Ledger_TEST_TIMEZONE}")
+    set_target_properties(check
+      PROPERTIES DEPENDS ${_class}Test_${TestFile_Name})
+  endforeach()
+
+  # CheckManpage and CheckTexinfo are disabled, since they do not work
+  # reliably yet, instead they are being run as a Travis CI report.
+  list(APPEND CheckOptions CheckBaselineTests) #CheckManpage CheckTexinfo
+  foreach(_class ${CheckOptions})
+    add_test(NAME ${_class}
+      COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/${_class}.py
+      --ledger $<TARGET_FILE:ledger> --source ${PROJECT_SOURCE_DIR})
+    set_tests_properties(${_class}
+      PROPERTIES ENVIRONMENT "TZ=${Ledger_TEST_TIMEZONE}")
+  endforeach()
+endif()
 
 ### CMakeLists.txt ends here

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2016, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -181,10 +181,17 @@ void report_t::normalize_options(const string& verb)
   }
 
   long cols = 0;
+#if HAVE_IOCTL
+  struct winsize ws;
+#endif
   if (HANDLED(columns_))
     cols = lexical_cast<long>(HANDLER(columns_).value);
   else if (const char * columns = std::getenv("COLUMNS"))
     cols = lexical_cast<long>(columns);
+#if HAVE_IOCTL
+  else if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != -1)
+      cols = ws.ws_col;
+#endif
   else
     cols = 80L;
 
@@ -624,7 +631,7 @@ value_t report_t::fn_trim(call_scope_t& args)
   while (*p && std::isspace(*p))
     p++;
 
-  const char * e = buf.get() + temp.length();
+  const char * e = buf.get() + temp.length() - 1;
   while (e > p && std::isspace(*e))
     e--;
 
@@ -636,7 +643,7 @@ value_t report_t::fn_trim(call_scope_t& args)
     return string_value(empty_string);
   }
   else {
-    return string_value(string(p, static_cast<std::string::size_type>(e - p)));
+    return string_value(string(p, static_cast<std::string::size_type>(e - p + 1)));
   }
 }
 
@@ -1191,6 +1198,7 @@ option_t<report_t> * report_t::lookup_option(const char * p)
     OPT_CH(collapse);
     else OPT(no_color);
     else OPT(no_pager);
+    else OPT(no_revalued);
     else OPT(no_rounding);
     else OPT(no_titles);
     else OPT(no_total);

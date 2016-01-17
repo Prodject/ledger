@@ -1,6 +1,6 @@
 ;;; ledger-state.el --- Helper code for use with the "ledger" command-line tool
 
-;; Copyright (C) 2003-2014 John Wiegley (johnw AT gnu DOT org)
+;; Copyright (C) 2003-2016 John Wiegley (johnw AT gnu DOT org)
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,10 +68,12 @@
 
 (defun ledger-state-from-string (state-string)
   "Get state from STATE-CHAR."
-  (cond ((string= state-string "!") 'pending)
-        ((string= state-string "*") 'cleared)
-        ((string= state-string ";") 'comment)
-        (t nil)))
+  (when state-string
+    (cond
+     ((string-match "\\!" state-string) 'pending)
+     ((string-match "\\*" state-string) 'cleared)
+     ((string-match ";" state-string) 'comment)
+     (t nil))))
 
 (defun ledger-toggle-current-posting (&optional style)
   "Toggle the cleared status of the transaction under point.
@@ -112,8 +114,8 @@ dropped."
           (when (not (eq (ledger-state-from-char (char-after)) 'comment))
             (insert (ledger-char-from-state cur-status) " ")
             (if (and (search-forward "  " (line-end-position) t)
-										 (looking-at "  "))
-								(delete-char 2)))
+                     (looking-at "  "))
+                (delete-char 2)))
           (forward-line))
         (setq new-status nil)))
 

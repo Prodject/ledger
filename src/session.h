@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2014, John Wiegley.  All rights reserved.
+ * Copyright (c) 2003-2016, John Wiegley.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -84,6 +84,8 @@ public:
   journal_t * read_journal_files();
   void close_journal_files();
 
+  journal_t * get_journal();
+
   value_t fn_account(call_scope_t& scope);
   value_t fn_min(call_scope_t& scope);
   value_t fn_max(call_scope_t& scope);
@@ -95,7 +97,6 @@ public:
 
   void report_options(std::ostream& out)
   {
-    HANDLER(cache_).report(out);
     HANDLER(check_payees).report(out);
     HANDLER(day_break).report(out);
     HANDLER(download).report(out);
@@ -124,7 +125,6 @@ public:
    * Option handlers
    */
 
-  OPTION(session_t, cache_);
   OPTION(session_t, check_payees);
   OPTION(session_t, day_break);
   OPTION(session_t, download); // -Q
