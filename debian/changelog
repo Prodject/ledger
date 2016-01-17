@@ -1,3 +1,9 @@
+ledger (3.1.1-0mbudde1) wily; urgency=medium
+
+  * New release
+
+ -- Michael Budde <mbudde@gmail.com>  Sun, 17 Jan 2016 14:07:46 +0100
+
 ledger (3.1-0mbudde1) trusty; urgency=medium
 
   * New release
